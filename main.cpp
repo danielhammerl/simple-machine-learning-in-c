@@ -3,7 +3,6 @@
 #include <array>
 #include <random>
 #include <chrono>
-#include <filesystem>
 #include <cmath>
 
 static double sigmoidFunction(double x) {
