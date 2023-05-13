@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     const unsigned numberOfHiddenLayers = 2;
     const unsigned numberOfOutputLayers = 1;
 
-    const double learningFactor = 0.5;
+    const double learningFactor = 0.1;
     double hiddenLayers[numberOfHiddenLayers];
     double outputLayers[numberOfOutputLayers];
 
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
                                                             {0}};
 
     std::array<int, 4> trainingSetOrder{0, 1, 2, 3};
-    int numberOfEpochs = 15000;
+    int numberOfEpochs = 1500000;
     int numberOfVerificationSteps = 100;
 
     for (int epoch = 0; epoch < numberOfEpochs; epoch++) {
@@ -99,6 +99,7 @@ int main(int argc, char *argv[]) {
             for (int output = 0; output < numberOfOutputLayers; output++) {
                 double error = trainingOutput[trainingSet][output] - outputLayers[output];
                 deltaOutput[output] = error * sigmoidDerivativeFunction(outputLayers[output]);
+                // std::cout << "error: " << error << std::endl;
             }
 
             double deltaHidden[numberOfHiddenLayers];
@@ -110,10 +111,10 @@ int main(int argc, char *argv[]) {
                 deltaHidden[hidden] = error * sigmoidDerivativeFunction(hiddenLayers[hidden]);
             }
 
-            std::cout << inputToHiddenWeights[0][0] << " " << inputToHiddenWeights[0][1] << " "
+            /*std::cout << inputToHiddenWeights[0][0] << " " << inputToHiddenWeights[0][1] << " "
                       << inputToHiddenWeights[1][0] << " " << inputToHiddenWeights[1][1] << std::endl;
             std::cout << hiddenToOutputWeights[0][0] << " " << hiddenToOutputWeights[1][0] << std::endl;
-            std::cout << "-" << std::endl;
+            std::cout << "-" << std::endl;*/
 
             //apply changes in weights
             for (int output = 0; output < numberOfOutputLayers; output++) {
@@ -134,9 +135,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    bool works = true;
-    int errorAt = 0;
-    for (int verificationStep = 0; verificationStep < numberOfVerificationSteps && works; verificationStep++) {
+    std::cout << "Detecting error rate after " << numberOfEpochs << " epochs" << std::endl;
+
+    unsigned int verificationStepsForErrorRate = 1000000;
+    unsigned errorCounter = 0;
+    for (int verificationStep = 0; verificationStep < verificationStepsForErrorRate; verificationStep++) {
         // obtain a time-based seed:
         unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
         shuffle(trainingSetOrder.begin(), trainingSetOrder.end(), std::default_random_engine(seed));
@@ -167,48 +170,44 @@ int main(int argc, char *argv[]) {
             }
 
             if (round(outputLayers[0]) != trainingOutput[trainingSet][0]) {
-                works = false;
-                errorAt = verificationStep;
-                break;
+                errorCounter++;
             }
         }
     }
 
-    std::cout << (works ? "OK" : "Not ok") << std::endl;
-    if (works) {
-        std::cout << inputToHiddenWeights[0][0] << " " << inputToHiddenWeights[0][1] << " "
-                  << inputToHiddenWeights[1][0] << " " << inputToHiddenWeights[1][1] << std::endl;
-        std::cout << hiddenToOutputWeights[0][0] << " " << hiddenToOutputWeights[1][0] << std::endl;
+    std::cout << "Error rate is equal to " << ((((double)errorCounter / 4.f) / (double)verificationStepsForErrorRate) * 100.f) << " percentage"
+              << std::endl;
 
-        for (auto &x: trainingData) {
-            for (int hiddenNodeIndex = 0; hiddenNodeIndex < numberOfHiddenLayers; hiddenNodeIndex++) {
-                double activation = 0;//hiddenLayerBias[hiddenNodeIndex];
 
-                for (int inputIndex = 0; inputIndex < numberOfInputLayers; inputIndex++) {
-                    activation +=
-                            x[inputIndex] * inputToHiddenWeights[inputIndex][hiddenNodeIndex];
-                }
+    std::cout << inputToHiddenWeights[0][0] << " " << inputToHiddenWeights[0][1] << " "
+              << inputToHiddenWeights[1][0] << " " << inputToHiddenWeights[1][1] << std::endl;
+    std::cout << hiddenToOutputWeights[0][0] << " " << hiddenToOutputWeights[1][0] << std::endl;
 
-                hiddenLayers[hiddenNodeIndex] = sigmoidFunction(activation);
+    for (auto &x: trainingData) {
+        for (int hiddenNodeIndex = 0; hiddenNodeIndex < numberOfHiddenLayers; hiddenNodeIndex++) {
+            double activation = 0;//hiddenLayerBias[hiddenNodeIndex];
+
+            for (int inputIndex = 0; inputIndex < numberOfInputLayers; inputIndex++) {
+                activation +=
+                        x[inputIndex] * inputToHiddenWeights[inputIndex][hiddenNodeIndex];
             }
 
-            for (int outputNodeIndex = 0; outputNodeIndex < numberOfOutputLayers; outputNodeIndex++) {
-                double activation = 0;//outputLayerBias[outputNodeIndex];
-
-                for (int hiddenIndex = 0; hiddenIndex < numberOfHiddenLayers; hiddenIndex++) {
-                    activation +=
-                            hiddenLayers[hiddenIndex] * hiddenToOutputWeights[hiddenIndex][outputNodeIndex];
-                }
-
-                outputLayers[outputNodeIndex] = sigmoidFunction(activation);
-            }
-
-            std::cout << "input " << x[0] << " and " << x[1] << " results to "
-                      << round(outputLayers[0]) << std::endl;
+            hiddenLayers[hiddenNodeIndex] = sigmoidFunction(activation);
         }
 
+        for (int outputNodeIndex = 0; outputNodeIndex < numberOfOutputLayers; outputNodeIndex++) {
+            double activation = 0;//outputLayerBias[outputNodeIndex];
 
-    } else {
-        std::cout << errorAt << std::endl;
+            for (int hiddenIndex = 0; hiddenIndex < numberOfHiddenLayers; hiddenIndex++) {
+                activation +=
+                        hiddenLayers[hiddenIndex] * hiddenToOutputWeights[hiddenIndex][outputNodeIndex];
+            }
+
+            outputLayers[outputNodeIndex] = sigmoidFunction(activation);
+        }
+
+        std::cout << "input " << x[0] << " and " << x[1] << " results to "
+                  << round(outputLayers[0]) << std::endl;
     }
+
 }
